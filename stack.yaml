@@ -1,0 +1,76 @@
+services:
+  postgres_db:
+    container_name: postgres
+    image: postgres:latest
+    restart: always
+    ports:
+      - 5432:5432
+    volumes:
+      - ./dbfiles:/docker-entrypoint-initdb.d
+      - ./postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: marior
+      POSTGRES_PASSWORD: linux
+      POSTGRES_DB: quiniela6
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"          # Limita el uso de CPU a 1 núcleo
+          memory: 1G           # Limita el uso de memoria a 1 GB
+        reservations:
+          memory: 512M         # Reserva de memoria mínima de 512 MB
+
+  adminer:
+    container_name: adminer
+    image: adminer:latest
+    restart: always
+    depends_on:
+      - postgres_db
+    ports:
+      - 9090:8080
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"          # Limita el uso de CPU a 0.3 núcleos
+          memory: 256M         # Limita el uso de memoria a 256 MB
+        reservations:
+          memory: 128M         # Reserva de memoria mínima de 128 MB
+
+  # Servicio para App Backend
+  quiniela-back:
+    build:
+      context: ./backend
+      args:
+        - JAR_FILE=*.jar
+        - DB_PASSWORD=qwerty
+    container_name: quiniela-back
+    environment:
+      - JAVA_OPTS=-Xms256M -Xmx512M
+    depends_on:
+      - postgres_db
+    ports:
+      - 8080:8080
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"          # Limita el uso de CPU a 1.5 núcleos
+          memory: 1.5G         # Limita el uso de memoria a 1.5 GB
+        reservations:
+          memory: 512M         # Reserva de memoria mínima de 512 MB
+
+  # Servicio para App Frontend
+  quiniela-front:
+    build:
+      context: ./angular
+    container_name: quiniela-front
+    depends_on:
+      - quiniela-back
+    ports:
+      - 80:80
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"          # Limita el uso de CPU a 0.5 núcleos
+          memory: 512M         # Limita el uso de memoria a 512 MB
+        reservations:
+          memory: 256M         # Reserva de memoria mínima de 256 MB
